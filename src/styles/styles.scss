@@ -1,0 +1,29 @@
+@import 'variables';
+
+* {
+  box-sizing: border-box;
+  &::before, &::after {
+    box-sizing: inherit;
+  }
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  font: normal 1rem/1.3 'Avenir', Helvetica, Arial, sans-serif;
+  background-color: $gray-light-4;
+  color: $gray-dark-6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+fieldset {
+  border: 0;
+  background-color: $gray-light-4;
+  padding: $gutter;
+  margin: 0;
+}
+
+@import 'partials/animations'

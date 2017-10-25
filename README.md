@@ -1,6 +1,6 @@
 # vue-input
 
-> A Vue.js project
+> Vuejs input component
 
 ## Build Setup
 
@@ -17,5 +17,14 @@ npm run build
 # build for production and view the bundle analyzer report
 npm run build --report
 ```
-
-For a detailed explanation on how things work, check out the [guide](http://vuejs-templates.github.io/webpack/) and [docs for vue-loader](http://vuejs.github.io/vue-loader).
+## Props
+|Name|Type|Default|Required|
+|--- |--- |--- |--- |
+|id|String|-|true|
+|type|String|text|false|
+|label|String|-|false|
+|hint|String|-|false|
+|required|Boolean|false|false|
+|disabled|Boolean|false|false|
+|validate|Boolean|false|false|
+|validationInvalidMsg|String|-|false|

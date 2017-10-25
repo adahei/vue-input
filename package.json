@@ -1,7 +1,7 @@
 {
   "name": "vue-input",
   "version": "1.0.0",
-  "description": "A Vue.js project",
+  "description": "Vuejs input component",
   "author": "Adam Heidmark <adam@heidmark.se>",
   "private": true,
   "scripts": {

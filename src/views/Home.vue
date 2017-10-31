@@ -110,10 +110,14 @@
       <v-input
         label="Week"
         id="simpleWeek"
+        :step="2"
         type="week"
         v-model="date.week"
       />
       <div class="output">{{ date.week }}</div>
+      <div class="attention attention--tip">
+        <p>You can use <code>step</code>, <code>min</code> and <code>max</code> on these inputs!</p>
+      </div>
     </section>
 
     <section>
@@ -160,11 +164,48 @@
         label="File input"
         id="fileInput"
         type="file"
-        :multiple="true"
+        multiple
         accept="image/*"
         v-model="file"
       />
       <div class="output">{{ file }}</div>
+    </section>
+
+    <section>
+      <h2>Input states</h2>
+      <v-input
+        label="Readonly input"
+        id="readonlyInput"
+        type="text"
+        initValue="Readonly"
+        readonly
+        v-model="states.readonly"
+      />
+      <div class="output">{{ states.readonly }}</div>
+
+      <v-input
+        label="Disabled input"
+        id="disabledInput"
+        type="text"
+        initValue="Disabled"
+        disabled
+        v-model="states.disabled"
+      />
+      <div class="output">{{ states.disabled }}</div>
+    </section>
+
+    <section>
+      <h2>Adjustment buttons for number input</h2>
+      <!-- Adjustment number input -->
+      <v-input
+        label="Adjustment Number"
+        id="adjNumber"
+        type="number"
+        initValue="3"
+        :adjustmentButtons="true"
+        v-model="adjustment.number"
+      />
+      <div class="output">{{ adjustment.number }}</div>
     </section>
 
     <section>
@@ -215,6 +256,7 @@
           <tr><td colspan="4"><sup>[1]</sup> Only for file input </td></tr>
           <tr><td colspan="4"><sup>[2]</sup> Only for number input </td></tr>
           <tr><td colspan="4"><sup>[3]</sup> If pattern is added as an attribute, any custom validation will be overwritten </td></tr>
+          <tr><td colspan="4"><sup>[4]</sup> Only for date and time inputs </td></tr>
         </tfoot>
       </table>
     </section>
@@ -233,6 +275,7 @@ export default {
         { name: 'autocomplete', footnote: '', type: 'String', default: '', required: false },
         { name: 'autofocus', footnote: '', type: 'Boolean', default: false, required: false },
         { name: 'label', footnote: '', type: 'String', default: '', required: false },
+        { name: 'initValue', footnote: '', type: '*', default: '', required: false },
         { name: 'hint', footnote: '', type: 'String', default: '', required: false },
         { name: 'pattern', footnote: '[3]', type: 'String', default: '', required: false },
         { name: 'placeholder', footnote: '', type: 'String', default: '', required: false },
@@ -241,17 +284,19 @@ export default {
         { name: 'readonly', footnote: '', type: 'Boolean', default: false, required: false },
         { name: 'disabled', footnote: '', type: 'Boolean', default: false, required: false },
         { name: 'validate', footnote: '', type: 'Boolean', default: false, required: false },
+        { name: 'adjustmentButtons', footnote: '[2]', type: 'Boolean', default: false, required: false },
         { name: 'validationMsg', footnote: '', type: 'String', default: '', required: false },
         { name: 'minlength', footnote: '', type: 'Number', default: '', required: false },
         { name: 'maxlength', footnote: '', type: 'Number', default: '', required: false },
         { name: 'multiple', footnote: '[1]', type: 'Boolean', default: false, required: false },
         { name: 'accept', footnote: '[1]', type: 'String', default: '', required: false },
-        { name: 'step', footnote: '[2]', type: 'Number', default: '', required: false },
-        { name: 'min', footnote: '[2]', type: 'Number', default: '', required: false },
-        { name: 'max', footnote: '[2]', type: 'Number', default: '', required: false }
+        { name: 'step', footnote: '[2][4]', type: 'Number', default: '', required: false },
+        { name: 'min', footnote: '[2][4]', type: 'Number', default: '', required: false },
+        { name: 'max', footnote: '[2][4]', type: 'Number', default: '', required: false }
       ],
       examples: {
-        basic: '<v-input \n' +
+        basic: '<!-- This is a basic input --> \n' +
+               '<v-input \n' +
                 '  label="Basic input" \n' +
                 '  id="simpleText" \n' +
                 '  type="text" \n' +
@@ -270,7 +315,7 @@ export default {
               '  label="File input" \n' +
               '  id="fileInput" \n' +
               '  type="file" \n' +
-              '  multiple="true" \n' +
+              '  multiple \n' +
               '  accept="images/*" \n' +
               '  v-model="formInput" \n' +
               '/>'
@@ -296,7 +341,14 @@ export default {
       required: {
         number: {}
       },
-      file: {}
+      file: {},
+      adjustment: {
+        number: {}
+      },
+      states: {
+        readonly: {},
+        disabled: {}
+      }
     }
   },
   components: {
@@ -335,12 +387,37 @@ export default {
   }
 }
 .attention {
+  position: relative;
   background-color: $pale;
   color: $pale-dark-4;
   padding: $gutter;
   margin: $gutter-sm 0;
   > p {
     margin: 0;
+  }
+  &:before {
+    content: 'Note:';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    font-size: .7rem;
+  }
+
+  code {
+    display: inline-block;
+    padding: 0 $gutter-sm;
+    border: 1px solid $green-light-5;
+    background-color: $green-light-6;
+    color: $green;
+    border-radius: 4px;
+  }
+
+  &--tip {
+    background-color: $blue-light-7;
+    color: $blue;
+    &:before {
+      content: 'Tip:';
+    }
   }
 }
 .output {
@@ -355,6 +432,7 @@ export default {
 
 .props-table {
   width: 100%;
+  font-size: .9rem;
   border-spacing: 0;
   border-collapse: collapse;
   th, td {
@@ -391,7 +469,7 @@ export default {
   }
   tfoot {
     td {
-      font-size: .8rem;
+      font-size: .9rem;
       border: 0;
       padding: 0;
     }

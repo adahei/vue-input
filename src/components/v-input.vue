@@ -2,33 +2,38 @@
   <div class="input" :class="{'prestine': isPrestine, 'invalid': isInvalid, 'valid': isValid, 'required': required, 'isFile': isFileInput}">
     <label class="input__label" v-if="label" :for="id">{{ label }}</label>
     <small class="input__hint" v-if="hint">{{ hint }}</small>
-    <input
-      class="input__element"
-      :class="{'animation-fail': isInvalid, 'animation-success': isValid}"
-      ref="input"
-      :required="required"
-      :disabled="disabled"
-      :readonly="readonly"
-      :id="id"
-      :name="name"
-      :type="type"
-      :autocomplete="autocomplete"
-      :tabindex="tabindex"
-      :autofocus="autofocus"
-      :pattern="addPattern"
-      :placeholder="placeholder"
-      :multiple="isMultiple"
-      :accept="acceptableFiles"
-      :step="hasStep"
-      :min="hasMin"
-      :max="hasMax"
-      :minlength="minlength"
-      :maxlength="maxlength"
-      @input="handleUpdate($event.target.value)"
-      @focus="handleFocus"
-      @blur="handleBlur($event.target.value)"
-      @change="handleChange"
-    />
+    <div class="input__wrap">
+      <button type="button" class="input__adjustment input__adjustment--decr" v-if="hasAdjustmentButtons" @click="adjustDecr">-</button>
+      <input
+        class="input__element"
+        :class="{'animation-fail': isInvalid, 'animation-success': isValid}"
+        ref="input"
+        :required="required"
+        :disabled="disabled"
+        :readonly="readonly"
+        :id="id"
+        :value="setValue"
+        :name="name"
+        :type="type"
+        :autocomplete="autocomplete"
+        :tabindex="tabindex"
+        :autofocus="autofocus"
+        :pattern="addPattern"
+        :placeholder="placeholder"
+        :multiple="isMultiple"
+        :accept="acceptableFiles"
+        :step="hasStep"
+        :min="hasMin"
+        :max="hasMax"
+        :minlength="minlength"
+        :maxlength="maxlength"
+        @input="handleUpdate($event.target.value)"
+        @focus="handleFocus"
+        @blur="handleBlur($event.target.value)"
+        @change="handleChange"
+      />
+      <button type="button" class="input__adjustment input__adjustment--incr" v-if="hasAdjustmentButtons" @click="adjustIncr">+</button>
+    </div>
     <div v-if="isFileInput">
       <label class="input__file-btn" :for="id">
         <span class="input__file__select">Add files</span>
@@ -69,6 +74,9 @@ export default {
     id: {
       type: String,
       required: true
+    },
+    initValue: {
+      required: false
     },
     name: {
       type: String,
@@ -167,6 +175,10 @@ export default {
       type: Number,
       default: null,
       required: false
+    },
+    adjustmentButtons: {
+      type: Boolean,
+      required: false
     }
   },
   data () {
@@ -176,14 +188,18 @@ export default {
       state: {
         pristine: true,
         valid: null,
-        value: ''
+        value: null
       }
     }
   },
   mounted () {
+    this.initialValue()
     this.$emit('input', this.state)
   },
   computed: {
+    setValue: function () {
+      return this.state.value
+    },
     noValue: function () {
       let value = this.state.value
       if (value === null) return true
@@ -222,20 +238,47 @@ export default {
       return null
     },
     hasStep: function () {
-      if (this.type === 'number' && this.step) {
+      if (
+        (
+          this.type === 'number' ||
+          this.type === 'date' ||
+          this.type === 'time' ||
+          this.type === 'week' ||
+          this.type === 'month'
+        ) && this.step) {
         return this.step
       }
       return null
     },
     hasMin: function () {
-      if (this.type === 'number' && this.min !== null) {
+      if (
+        (
+          this.type === 'number' ||
+          this.type === 'date' ||
+          this.type === 'time' ||
+          this.type === 'week' ||
+          this.type === 'month'
+      ) && this.min !== null) {
         return this.min
       }
       return null
     },
     hasMax: function () {
-      if (this.type === 'number' && this.max !== null) {
+      if (
+        (
+          this.type === 'number' ||
+          this.type === 'date' ||
+          this.type === 'time' ||
+          this.type === 'week' ||
+          this.type === 'month'
+      ) && this.max !== null) {
         return this.max
+      }
+      return null
+    },
+    hasAdjustmentButtons: function () {
+      if (this.type === 'number' && this.adjustmentButtons) {
+        return true
       }
       return null
     },
@@ -272,6 +315,11 @@ export default {
     }
   },
   methods: {
+    initialValue: function () {
+      if (this.initValue) {
+        this.state.value = this.initValue
+      }
+    },
     handleChange: function (e) {
       if (this.type === 'file') {
         this.handleUpdate(e.target.files)
@@ -320,6 +368,22 @@ export default {
     },
     clearValue: function () {
       this.state.value = ''
+    },
+    adjustDecr: function () {
+      let step = this.step || 1
+      let min = this.min || null
+      let value = Number(this.state.value) || 0
+      if (!min || value - step >= min) {
+        this.state.value = value - step
+      }
+    },
+    adjustIncr: function () {
+      let step = this.step || 1
+      let max = this.max || null
+      let value = Number(this.state.value) || 0
+      if (!max || value + step <= max) {
+        this.state.value = value + step
+      }
     }
   }
 }
@@ -361,6 +425,10 @@ $input-focus-color: $blue-gray;
     .input__element {
       border-color: $input-border-color;
       color: $input-text;
+      &[disabled] {
+        background-color: $gray-light-4;
+        color: $input-shy-text;
+      }
     }
   }
   &__label {
@@ -375,6 +443,12 @@ $input-focus-color: $blue-gray;
     color: $input-error;
     font-size: .9rem;
   }
+  &__wrap {
+    display: flex;
+    .input__adjustment {
+      padding: $gutter-sm;
+    }
+  }
   &__element {
     display: block;
     width: 100%;
@@ -388,6 +462,9 @@ $input-focus-color: $blue-gray;
     &:active, &:focus {
       outline: none;
       box-shadow: 0 0 2px $input-focus-color;
+    }
+    &[disabled] {
+      cursor: not-allowed;
     }
   }
 

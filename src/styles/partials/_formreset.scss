@@ -3,8 +3,21 @@ input {
   font-size: 100%;
   line-height: 1.15;
   margin: 0;
+  -webkit-appearance: none;
+  -moz-appearance: none;
 }
-// 
+
+// Date and Time inputs have no default height
+// when it has no value in iOS.
+input[type="date"],
+input[type="time"],
+input[type="month"],
+input[type="week"],
+input[type="datetime-local"] {
+  min-height: 40px;
+}
+
+//
 // input[type="text"]::-ms-clear,
 // input[type="email"]::-ms-clear,
 // input[type="tel"]::-ms-clear,

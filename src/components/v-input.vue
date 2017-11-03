@@ -1,12 +1,12 @@
 <template lang="html">
-  <div class="input" :class="{'prestine': isPrestine, 'invalid': isInvalid, 'valid': isValid, 'required': required, 'isFile': isFileInput}">
+  <div class="input" :class="{'prestine': isPrestine, 'invalid': isInvalid, 'valid': isValid, 'required': required, 'disabled': disabled, 'isFile': isFileInput}">
     <label class="input__label" v-if="label" :for="id">{{ label }}</label>
     <small class="input__hint" v-if="hint">{{ hint }}</small>
-    <div class="input__wrap">
-      <button type="button" class="input__adjustment input__adjustment--decr" v-if="hasAdjustmentButtons" @click="adjustDecr">-</button>
+    <div class="input__wrap" :class="{'input__adjustment': hasAdjustmentButtons}" v-if="!isTextarea">
+      <button type="button" class="input__adjustment__btn input__adjustment__btn--decr" v-if="hasAdjustmentButtons" @click="adjustDecr">-</button>
       <input
         class="input__element"
-        :class="{'animation-fail': isInvalid, 'animation-success': isValid}"
+        :class="{'animation-fail': isInvalid, 'animation-success': isValid, 'input__element--range': type === 'range'}"
         ref="input"
         :required="required"
         :disabled="disabled"
@@ -32,7 +32,41 @@
         @blur="handleBlur($event.target.value)"
         @change="handleChange"
       />
-      <button type="button" class="input__adjustment input__adjustment--incr" v-if="hasAdjustmentButtons" @click="adjustIncr">+</button>
+      <input
+        v-if="type === 'range' && rangeValue"
+        class="input__element input__element--range-result"
+        type="number"
+        :disabled="disabled"
+        :readonly="readonly"
+        :step="hasStep"
+        :min="hasMin"
+        :max="hasMax"
+        v-model="state.value"
+      >
+      <button type="button" class="input__adjustment__btn  input__adjustment__btn--incr" v-if="hasAdjustmentButtons" @click="adjustIncr">+</button>
+    </div>
+    <div v-if="isTextarea">
+      <textarea
+        class="input__element input__element--textarea"
+        :class="{'animation-fail': isInvalid, 'animation-success': isValid}"
+        ref="input"
+        :required="required"
+        :disabled="disabled"
+        :readonly="readonly"
+        :id="id"
+        :name="name"
+        :placeholder="placeholder"
+        :cols="cols"
+        :rows="rows"
+        :tabindex="tabindex"
+        :autofocus="autofocus"
+        :minlength="minlength"
+        :maxlength="maxlength"
+        @input="handleUpdate($event.target.value)"
+        @focus="handleFocus"
+        @blur="handleBlur($event.target.value)"
+        @change="handleChange"
+      >{{ setValue }}</textarea>
     </div>
     <div v-if="isFileInput">
       <label class="input__file-btn" :for="id">
@@ -46,8 +80,8 @@
         <button type="button" @click="clearValue">Clear</button>
       </div>
     </div>
-    <div v-if="validate || showRequiredMsg">
-      <span class="input__validation" v-if="validate">{{ msg }}</span>
+    <div v-if="validate || showRequiredMsg || msg">
+      <span class="input__validation" v-if="validate || msg">{{ msg }}</span>
       <span class="input__require" v-if="showRequiredMsg">{{ requireMsg }}</span>
     </div>
   </div>
@@ -56,18 +90,17 @@
 <script>
 import {
   isValidEmail,
-  patternEmail,
   isValidPhone,
-  patternPhone
+  isValidUrl
 } from '@/mixins/validation'
 import fileSize from '@/mixins/fileSize'
 
 export default {
+  name: 'input',
   mixins: [
     isValidEmail,
-    patternEmail,
     isValidPhone,
-    patternPhone,
+    isValidUrl,
     fileSize
   ],
   props: {
@@ -158,12 +191,12 @@ export default {
     },
     min: {
       type: Number,
-      default: null,
+      default: 0,
       required: false
     },
     max: {
       type: Number,
-      default: null,
+      default: 100,
       required: false
     },
     minlength: {
@@ -178,6 +211,21 @@ export default {
     },
     adjustmentButtons: {
       type: Boolean,
+      required: false
+    },
+    cols: {
+      type: Number,
+      default: 100,
+      required: false
+    },
+    rows: {
+      type: Number,
+      default: 5,
+      required: false
+    },
+    rangeValue: {
+      type: Boolean,
+      default: false,
       required: false
     }
   },
@@ -213,17 +261,19 @@ export default {
       return true
     },
     showRequiredMsg: function () {
-      if (
-        this.required &&
-        !this.state.pristine &&
-        !this.state.valid
-      ) {
+      if (this.required && !this.state.pristine && !this.state.valid) {
         return true
       }
       return false
     },
     isFileInput: function () {
       if (this.type === 'file') {
+        return true
+      }
+      return false
+    },
+    isTextarea: function () {
+      if (this.type === 'textarea') {
         return true
       }
       return false
@@ -241,6 +291,7 @@ export default {
       if (
         (
           this.type === 'number' ||
+          this.type === 'range' ||
           this.type === 'date' ||
           this.type === 'time' ||
           this.type === 'week' ||
@@ -254,6 +305,7 @@ export default {
       if (
         (
           this.type === 'number' ||
+          this.type === 'range' ||
           this.type === 'date' ||
           this.type === 'time' ||
           this.type === 'week' ||
@@ -267,6 +319,7 @@ export default {
       if (
         (
           this.type === 'number' ||
+          this.type === 'range' ||
           this.type === 'date' ||
           this.type === 'time' ||
           this.type === 'week' ||
@@ -301,12 +354,14 @@ export default {
       if (this.pattern) {
         return this.pattern
       } else {
-        if (this.validate) {
+        if (this.validate || this.required) {
           switch (this.type) {
             case 'email':
               return this.patternEmail().source
             case 'tel':
               return this.patternPhone().source
+            case 'url':
+              return this.patternUrl().source
             default:
               return null
           }
@@ -334,6 +389,11 @@ export default {
     },
     handleBlur: function (val) {
       this.state.pristine = false
+      if (this.type === 'tel') {
+        let cleanedString = val.replace(/\s+/g, '')
+        this.state.value = cleanedString
+        val = cleanedString
+      }
       if (this.required || this.validate) {
         this.handleValidation(val)
       }
@@ -341,30 +401,83 @@ export default {
     handleValidation: function (val) {
       let validationMsg = ''
 
-      if (this.required) {
-        if (val.length > 0) {
-          this.state.valid = true
-        } else {
-          this.state.valid = false
-        }
-      }
+      if (this.validate || this.required) {
+        this.state.valid = null
 
-      if (this.validate) {
-        if (this.type === 'email') {
-          this.state.valid = this.isValidEmail(val)
-          if (!this.state.valid) {
-            validationMsg = 'E-mail is not valid!'
-          }
-        } else if (this.type === 'tel') {
-          this.state.valid = this.isValidPhone(val)
-          if (!this.state.valid) {
-            validationMsg = 'Phonenumber is not valid!'
-          }
+        switch (this.type) {
+          case 'email':
+            validationMsg = this.validateEmail(val)
+            break
+          case 'tel':
+            validationMsg = this.validateTel(val)
+            break
+          case 'number':
+            validationMsg = this.validateNumber(val)
+            break
+          case 'url':
+            validationMsg = this.validateUrl(val)
+            break
+          default:
+            if (this.required) {
+              if (val.length === 0 || val === null) {
+                this.state.valid = false
+              } else {
+                this.state.valid = true
+              }
+            }
+            validationMsg = ''
         }
 
-        this.msg = !this.state.valid ? (this.validationMsg || validationMsg) : ''
+        // if (validationMsg) {
+        //   this.state.valid = false
+        // }
+        this.msg = this.state.valid === false ? (this.validationMsg || validationMsg) : ''
       }
       this.$emit('valid', this.state)
+    },
+    validateEmail: function (val) {
+      if (val.length > 0 || this.required) {
+        this.state.valid = this.isValidEmail(val)
+        if (!this.state.valid) {
+          return 'E-mail is not valid'
+        }
+      }
+    },
+    validateTel: function (val) {
+      if (val.length > 0 || this.required) {
+        this.state.valid = this.isValidPhone(val)
+        if (!this.state.valid) {
+          return 'Phonenumber is not valid'
+        }
+      }
+    },
+    validateNumber: function (val) {
+      let validMin = this.min
+      let validMax = this.max
+      if (val.length > 0 || this.required) {
+        if (isNaN(val) || val === '' || val === null) {
+          this.state.valid = false
+          return 'This is not a number'
+        } else {
+          if (validMin && Number(val) < validMin) {
+            this.state.valid = false
+            return `Value must be greater or equal to ${validMin}`
+          } else if (validMax && Number(val) > validMax) {
+            this.state.valid = false
+            return `Value must be less or equal to ${validMax}`
+          } else {
+            this.state.valid = true
+          }
+        }
+      }
+    },
+    validateUrl: function (val) {
+      if (val.length > 0 || this.required) {
+        this.state.valid = this.isValidUrl(val)
+        if (!this.state.valid) {
+          return 'Not a valid URL'
+        }
+      }
     },
     clearValue: function () {
       this.state.value = ''
@@ -440,13 +553,41 @@ $input-focus-color: $blue-gray;
     color: $input-shy-text;
   }
   &__validation, &__require {
+    display: block;
     color: $input-error;
     font-size: .9rem;
   }
   &__wrap {
     display: flex;
-    .input__adjustment {
-      padding: $gutter-sm;
+    &.input__adjustment {
+      .input__element {
+        flex: 1;
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+      }
+    }
+    .input__adjustment__btn {
+      cursor: pointer;
+      padding: $gutter-sm $gutter;
+      height: auto;
+      border: 1px solid $input-border-color;
+      background-color: $gray-light-4;
+      &:hover, &:focus {
+        outline: none;
+        background-color: $gray-light-1;
+      }
+      &:active {
+        background-color: $gray-light-2;
+      }
+      &--decr {
+        border-top-left-radius: $input-border-radius;
+        border-bottom-left-radius: $input-border-radius;
+      }
+      &--incr {
+        border-top-right-radius: $input-border-radius;
+        border-bottom-right-radius: $input-border-radius;
+      }
     }
   }
   &__element {
@@ -465,6 +606,107 @@ $input-focus-color: $blue-gray;
     }
     &[disabled] {
       cursor: not-allowed;
+    }
+
+    &--textarea {
+      min-height: 50px;
+      max-height: 500px;
+      min-width: 50%;
+      width: auto;
+      max-width: 100%;
+    }
+
+    &--range {
+      border: 0;
+      margin-top: $gutter-sm;
+      padding-left: 0;
+      padding-right: 0;
+      &:focus {
+        box-shadow: none;
+      }
+      // WEBKIT
+      &::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        border: 1px solid $input-border-color;
+        height: $gutter;
+        width: $gutter;
+        border-radius: 50%;
+        background: $gray-light-2;
+        cursor: pointer;
+        margin-top: -($gutter / 2);
+        &:active {
+          background: $gray-light-1;
+        }
+      }
+      &::-webkit-slider-runnable-track {
+        width: 100%;
+        height: 1px;
+        cursor: pointer;
+        background: $gray;
+        transition: all .2s ease-in-out;
+      }
+      &:active::-webkit-slider-runnable-track {
+        background: $blue-gray;
+      }
+
+      // MOZ
+      &::-moz-range-thumb {
+        border: 1px solid $input-border-color;
+        height: $gutter;
+        width: $gutter;
+        border-radius: 50%;
+        background: $gray-light-2;
+        cursor: pointer;
+        &:active {
+          background: $gray-light-1;
+        }
+      }
+      &::-moz-range-track {
+        width: 100%;
+        height: 1px;
+        cursor: pointer;
+        background: $gray;
+        transition: background .2s ease-in-out;
+      }
+      &:active::-moz-range-track {
+        background: $blue-gray;
+      }
+
+      // IE / EDGE
+      &::-ms-thumb {
+        border: 1px solid $input-border-color;
+        height: $gutter-lg;
+        width: $gutter-lg;
+        border-radius: $input-border-radius;
+        background: $gray-light-2;
+        cursor: pointer;
+        &:active {
+          background: $gray-light-1;
+        }
+      }
+      &::-ms-track {
+        width: 100%;
+        height: $gutter-xl;
+        cursor: pointer;
+        background: transparent;
+        color: transparent;
+      }
+      &::-ms-fill-lower {
+        background-color: $gray;
+      }
+      &::-ms-fill-upper {
+        background-color: $gray;
+      }
+      &:active::-ms-fill-lower {
+        background: $blue-gray;
+      }
+      &:active::-ms-fill-upper {
+        background: $blue-gray;
+      }
+    }
+    &--range-result {
+      max-width: 80px;
+      margin-left: $gutter-sm;
     }
   }
 
@@ -504,6 +746,17 @@ $input-focus-color: $blue-gray;
     }
     .input__file__clear {
       text-align: right;
+    }
+
+    &.disabled {
+      .input__file__select {
+        cursor: not-allowed;
+        opacity: .5;
+        &:active {
+          transform: scale(1);
+          background-color: $gray-light-4;
+        }
+      }
     }
   }
 }
